@@ -1,41 +1,36 @@
-# 源文件目录
-SOURCE_DIR = ./src
+# 定义编译器和编译选项
+CC = gcc
+CFLAGS = -Wall -g
 
-# 使用通配符匹配C源文件
-SOURCES = $(wildcard $(SOURCE_DIR)/*.c)
+# 定义源文件和目标文件目录
+SRC_DIR = src
+OBJ_DIR = obj
 
-# 构建的32位库和64位库
-TARGET_32 = libMyLibrary32.dylib
-TARGET_64 = libMyLibrary64.dylib
+# 获取源文件列表
+SOURCES = $(wildcard $(SRC_DIR)/*.c)
+# 生成目标文件列表，将每个.c文件的路径替换为.obj文件
+OBJECTS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES))
 
-# 合并后的通用库
-TARGET_UNIVERSAL = libMyLibrary.dylib
+# 定义目标可执行文件
+TARGET = exe 
 
-# 编译器和链接器设置
-CC = clang
-CFLAGS = -Wall -shared -fPIC
-LDFLAGS =
+# 默认构建目标
+all: $(TARGET)
 
-# 构建规则
-all: $(TARGET_UNIVERSAL)
+# 生成可执行文件
+$(TARGET): $(OBJECTS)
+	$(CC) $(CFLAGS) -o $@ $^
 
-$(TARGET_32): $(SOURCES) $(ASSETS)
-	$(CC) $(CFLAGS) -arch armv7 -o $@ $(SOURCES) $(LDFLAGS)
+# 编译每个C文件为目标文件
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-$(TARGET_64): $(SOURCES) $(ASSETS)
-	$(CC) $(CFLAGS) -arch arm64 -o $@ $(SOURCES) $(LDFLAGS)
+# 创建目标文件目录
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
 
-$(TARGET_UNIVERSAL): $(TARGET_32) $(TARGET_64)
-	lipo -create $(TARGET_32) $(TARGET_64) -output $@
-
-# 编译资源文件并将其添加到库中
-$(ASSETS): $(ASSETS)
-	@for file in $(ASSETS); do \
-		xxd -i $$file | sed 's/unsigned char/const char/' | sed 's/_len/_size/' > $$file.h; \
-	done
-
-# 清理构建
+# 清理生成的文件
 clean:
-	rm -f $(TARGET_32) $(TARGET_64) $(TARGET_UNIVERSAL) $(ASSETS) $(ASSETS:.txt=.txt.h) $(ASSETS:.png=.png.h)
+	rm -f $(TARGET) $(OBJECTS)
 
 .PHONY: all clean
